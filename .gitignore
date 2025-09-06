@@ -1,0 +1,20 @@
+# Terraform working dir & state
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Plans
+tfplan*
+*.plan
+
+# Local variable files
+*.tfvars
+*.auto.tfvars
+
+# Secret files that might be needed
+*.pem
+*.key
+.env
+.aws/
