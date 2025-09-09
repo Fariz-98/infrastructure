@@ -7,6 +7,16 @@ terraform {
   }
 }
 
+provider "aws" {
+  region = var.region
+
+  default_tags {
+    tags = {
+      Env = var.env
+    }
+  }
+}
+
 locals {
   name_prefix = "tf-${var.env}-net"
   azs         = ["${var.region}a", "${var.region}b"]
@@ -46,10 +56,6 @@ locals {
   ]
 }
 
-provider "aws" {
-  region = var.region
-}
-
 # VPC
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
@@ -57,7 +63,6 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
   tags = {
     Name = "${local.name_prefix}-vpc"
-    Env  = var.env
   }
 }
 
@@ -121,87 +126,13 @@ resource "aws_route_table_association" "private" {
   subnet_id      = each.value.id
 }
 
-# SECURITY GROUPS (SG)
-# SG - ALB
-resource "aws_security_group" "alb_sg" {
-  name        = "${local.name_prefix}-alb-sg"
-  description = "Public ALB Ingress from internet"
-  vpc_id      = aws_vpc.main.id
-
-  # Ingress: Allow HTTP (80) and HTTPS (443) from all
-  ingress {
-    description = "HTTP from all"
-    from_port   = 80
-    protocol    = "tcp"
-    to_port     = 80
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTPS from all"
-    from_port   = 443
-    protocol    = "tcp"
-    to_port     = 443
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Egress: allow all
-  egress {
-    description = "Allow all egress"
-    from_port   = 0
-    protocol    = "-1" # -1 is all protocol
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${local.name_prefix}-alb-sg"
-  }
-}
-
-# SG - App
-resource "aws_security_group" "app_sg" {
-  name        = "${local.name_prefix}-app-sg"
-  description = "For app (ecs in this case)"
-  vpc_id      = aws_vpc.main.id
-
-  # Only allow ALB to access (ingress)
-  ingress {
-    description     = "App port from ALB SG"
-    from_port       = 8080
-    protocol        = "tcp"
-    to_port         = 8080
-    security_groups = [aws_security_group.alb_sg.id] # Source via SG from alb-sg
-  }
-
-  # Egress: allow all
-  egress {
-    from_port   = 0
-    protocol    = "-1"
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${local.name_prefix}-app-sg"
-  }
-}
-
 # SG - VPC Endpoints
 resource "aws_security_group" "vpce_sg" {
   name        = "${local.name_prefix}-vpce-sg"
   description = "Allow HTTPS from app to interface (ENIs) VPC Endpoints"
   vpc_id      = aws_vpc.main.id
 
-  # App tasks to talk interface over 443
-  ingress {
-    description     = "HTTPS from app-sg"
-    from_port       = 443
-    protocol        = "tcp"
-    to_port         = 443
-    security_groups = [aws_security_group.app_sg.id]
-  }
-
+  # Let app app manage ingress via aws_security_group_rule
   # Endpoints dont initiate traffic, but SG needs it. Keep default
   egress {
     description = "Allow all egress"
@@ -213,32 +144,6 @@ resource "aws_security_group" "vpce_sg" {
 
   tags = {
     Name = "${local.name_prefix}-vpce-sg"
-  }
-}
-
-resource "aws_security_group" "db_sg" {
-  name        = "${local.name_prefix}-db-sg"
-  description = "RDS only from app-sg"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description     = "RDS from app-sg"
-    from_port       = 3306
-    protocol        = "tcp"
-    to_port         = 3306
-    security_groups = [aws_security_group.app_sg.id]
-  }
-
-  egress {
-    description = "Allow all egress"
-    from_port   = 0
-    protocol    = "-1"
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${local.name_prefix}-db-sg"
   }
 }
 
