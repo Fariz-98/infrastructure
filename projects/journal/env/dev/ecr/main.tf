@@ -9,8 +9,20 @@ terraform {
 
 provider "aws" {
   region = var.region
+
+  default_tags {
+    tags = {
+      Env = var.env
+      Project = "tf-journal"
+    }
+  }
 }
 
+locals {
+  name_prefix = "tf-${var.env}-journal-ecr"
+}
+
+# app repo
 resource "aws_ecr_repository" "journal" {
   name = "tf-journal-repo"
   image_tag_mutability = "IMMUTABLE"
@@ -26,7 +38,7 @@ resource "aws_ecr_repository" "journal" {
 
   tags = {
     Project = "tf-journal"
-    Env = "dev"
+    Name = local.name_prefix
   }
 }
 

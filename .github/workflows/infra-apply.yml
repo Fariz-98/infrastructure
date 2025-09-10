@@ -1,0 +1,170 @@
+name: infra-apply
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'aws/env/dev/**'
+      - 'projects/journal/env/dev/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: infra-apply-dev
+      cancel-in-progress: false
+
+    env:
+      AWS_REGION: ap-southeast-1
+      TF_IN_AUTOMATION: "1"
+
+      SSM_INFRA_PARAM: /dev/infra/contract
+      SSM_JOURNAL_PARAM: /dev/journal/contract
+
+      JOURNAL_NAME: journal
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.x
+
+      - name: Configure AWS (assume infra role via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: infra-apply
+
+      - name: Who am I (sanity)
+        run: aws sts get-caller-identity
+
+      - name: Terraform apply (ordered stacks)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Infra order
+          # VPC -> IAM -> ALB -> ECS -> RDS
+
+          # Project order
+          # Journal
+          # ECR -> SECRETSMANAGER -> IAM -> JOURNAL-SERVICE (ECS, Cloudwatch, etc)
+
+          mapfile -t STACKS <<'EOF'
+          aws/env/dev/vpc
+          aws/env/dev/alb
+          aws/env/dev/ecs
+          aws/env/dev/rds
+
+          projects/journal/env/dev/ecr
+          projects/journal/env/dev/secretsmanager
+          projects/journal/env/dev/iam
+          projects/journal/env/dev/journal-service
+          EOF
+
+          for path in "${STACKS[@]}"; do
+            echo "=== INIT + FMT + PLAN + APPLY: $path"
+            terraform -chdir="$path" init -input=false
+            terraform -chdir="$path" fmt -recursive
+            terraform -chdir="$path" plan -input=false -out=tfplan
+            terraform -chdir="$path" apply -auto-approve tfplan
+          done
+
+      - name: Build contract JSON from outputs
+        id: build_contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Helpers: read TF outputs
+          tf_out_raw () { terraform -chdir="$1" output -raw "$2" 2>/dev/null || true; }
+          tf_out_json () { terraform -chdir="$1" output -json "$2" 2>/dev/null || true; }
+
+          # Infra Contracts
+          CLUSTER_ARN=$(tf_out_raw "aws/env/dev/ecs" "cluster_arn")
+          PRIVATE_SUBNETS_JSON=$(tf_out_json "aws/env/dev/vpc" "private_subnet_ids")
+          RDS_ENDPOINT=$(tf_out_raw "aws/env/dev/rds" "endpoint")
+          RDS_DB_NAME=$(tf_out_raw "aws/env/dev/rds" "rds_db_name")
+
+          jq -n \
+            --arg clusterArn "$CLUSTER_ARN" \
+            --argjson subnets "${PRIVATE_SUBNETS_JSON:-[]}" \
+            --arg rdsEndpoint "$RDS_ENDPOINT" \
+            --arg dbName "$RDS_DB_NAME" \
+            --arg version "${GITHUB_SHA:-}" \
+            '{
+              version: $version,
+              clusterArn: $clusterArn,
+              subnets: $subnets,
+              rdsEndpoint: $rdsEndpoint,
+              dbName: $dbName
+            }' | tee infra.json
+
+          # Journal contract
+          ECR_REPO_JOURNAL_URL=$(tf_out_raw "projects/journal/env/dev/ecr" "ecr_journal_repo_url")
+          JOURNAL_SERVICE_NAME=$(tf_out_raw "projects/journal/env/dev/journal-service" "app_ecs_service_name")
+          JOURNAL_EXEC_ROLE_ARN=$(tf_out_raw "projects/journal/env/dev/iam" "ecs_exec_role_arn")
+          JOURNAL_TASK_ROLE_ARN=$(tf_out_raw "projects/journal/env/dev/iam" "ecs_task_role_arn")
+          JOURNAL_APP_SG_ID=$(tf_out_raw "projects/journal/env/dev/journal-service" "app_sg_id")
+          JOURNAL_LOG_GROUP=$(tf_out_raw "projects/journal/env/dev/journal-service" "app_log_group_name")
+
+          jq -n \
+            --arg appName "${JOURNAL_NAME}" \
+            --arg ecrRepo "$ECR_REPO_JOURNAL_URL" \
+            --arg service "$JOURNAL_SERVICE_NAME" \
+            --arg execRole "$JOURNAL_EXEC_ROLE_ARN" \
+            --arg taskRole "$JOURNAL_TASK_ROLE_ARN" \
+            --arg appSg "$JOURNAL_APP_SG_ID" \
+            --arg logGroup "$JOURNAL_LOG_GROUP" \
+            --arg version "${GITHUB_SHA:-}" \
+            '{
+              version: $version,
+              app: $appName,
+              ecrRepo: $ecrRepo,
+              serviceName: $service,
+              execRoleArn: $execRole,
+              taskRoleArn: $taskRole,
+              securityGroups: ([$appSg] | map(select(length>0))),
+              logGroup: $logGroup
+            }' | tee journal.json
+
+          echo "infra=$(cat infra.json)" >> "$GITHUB_OUTPUT"
+          echo "journal=$(cat journal.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish infra contract to SSM
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ssm put-parameter \
+            --name "${{ env.SSM_INFRA_PARAM }}" \
+            --type "String" \
+            --overwrite \
+            --value "file://infra.json"
+
+      - name: Publish journal contract to SSM
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ssm put-parameter \
+            --name "${{ env.SSM_JOURNAL_PARAM }}" \
+            --type "String" \
+            --overwrite \
+            --value "file://journal.json"
+
+      - name: Upload contracts (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: contracts-dev
+          retention-days: 1
+          path: |
+            infra.json
+            journal.json
