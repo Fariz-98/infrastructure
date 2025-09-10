@@ -21,6 +21,7 @@ provider "aws" {
 locals {
   name_prefix = "tf-${var.env}-journal-iam"
   github_oidc_provider_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+  account_id = data.aws_caller_identity.current.account_id
 }
 
 # Policy for reading secrets
@@ -30,11 +31,12 @@ data "aws_iam_policy_document" "read_secrets" {
     effect = "Allow"
     actions = [
       "secretsmanager:GetSecretValue",
-      "secretsmanager:DescribeSecret"
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:ListSecretVersionIds"
     ]
     resources = [
       data.terraform_remote_state.secretsmanager.outputs.journal_secrets_arn,
-      "${data.terraform_remote_state.secretsmanager.outputs.journal_secrets_arn}*",
+      "${data.terraform_remote_state.secretsmanager.outputs.journal_secrets_arn}-*",
     ]
 
     # Only allow if tag is dev (just in case)
@@ -51,7 +53,8 @@ data "aws_iam_policy_document" "read_secrets" {
     effect = "Allow"
     actions = [
       "secretsmanager:GetSecretValue",
-      "secretsmanager:DescribeSecret"
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:ListSecretVersionIds"
     ]
     resources = [
       data.terraform_remote_state.rds.outputs.rds_master_secret_arn
@@ -151,7 +154,7 @@ resource "aws_iam_role" "github_app_deploy" {
   }
 }
 
-# Policy to get ecr images and update ecs
+# Policy to get ecr images, update ecs and rotate secrets
 data "aws_iam_policy_document" "github_policy" {
 
   # ECR Auth
@@ -211,6 +214,29 @@ data "aws_iam_policy_document" "github_policy" {
       values   = ["ecs-tasks.amazonaws.com"]
       variable = "iam:PassedToService"
     }
+  }
+
+  statement {
+    sid    = "GitHubRotateSecrets"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:ListSecretVersionIds",
+      "secretsmanager:PutSecretValue",
+      "secretsmanager:UpdateSecretVersionStage"
+    ]
+    resources = [
+      data.terraform_remote_state.secretsmanager.outputs.journal_secrets_arn,
+      "${data.terraform_remote_state.secretsmanager.outputs.journal_secrets_arn}-*"
+    ]
+  }
+
+  statement {
+    sid = "ReadContracts"
+    effect = "Allow"
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = ["*"]
   }
 }
 
