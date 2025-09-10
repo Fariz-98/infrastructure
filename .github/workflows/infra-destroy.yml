@@ -83,8 +83,9 @@ jobs:
           EOF
 
           for path in "${STACKS[@]}"; do
-            echo "=== INIT + PLAN -destroy + APPLY: $path"
+            echo "=== INIT + FMT + PLAN -destroy + APPLY: $path"
             terraform -chdir="$path" init -input=false
+            terraform -chdir="$path" fmt -recursive
             terraform -chdir="$path" plan -input=false -destroy -out=tfplan-destroy
             terraform -chdir="$path" apply -auto-approve tfplan-destroy
           done

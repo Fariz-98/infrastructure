@@ -68,7 +68,7 @@ jobs:
           for path in "${STACKS[@]}"; do
             echo "=== INIT + FMT + VALIDATE + PLAN: $path"
             terraform -chdir="$path" init -input=false
-            terraform -chdir="$path" fmt -check
+            terraform -chdir="$path" fmt -recursive
             terraform -chdir="$path" validate
             terraform -chdir="$path" plan -input=false -lock=false -out=tfplan
           done

@@ -1,7 +1,6 @@
 variable "region" {
   description = "AWS region for the backend resources"
   type        = string
-
 }
 
 variable "env" {
