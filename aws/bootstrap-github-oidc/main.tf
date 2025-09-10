@@ -133,12 +133,37 @@ data "aws_iam_policy_document" "policy" {
     sid    = "IamRole"
     effect = "Allow"
     actions = [
-      "iam:CreateRole", "iam:DeleteRole", "iam:GetRole",
+      # Roles
+      "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:ListRoles", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+      "iam:TagRole", "iam:UntagRole", "iam:ListRoleTags",
+
+      # Managed policies
+      "iam:CreatePolicy", "iam:DeletePolicy",
+      "iam:GetPolicy", "iam:GetPolicyVersion",
+      "iam:CreatePolicyVersion", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion",
+      "iam:ListPolicies", "iam:ListPolicyVersions",
       "iam:AttachRolePolicy", "iam:DetachRolePolicy",
-      "iam:PutRolePolicy", "iam:DeleteRolePolicy",
-      "iam:CreatePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
-      "iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListAttachedRolePolicies",
-      "iam:DeletePolicy", "iam:CreateServiceLinkedRole"
+      "iam:TagPolicy", "iam:UntagPolicy", "iam:ListPolicyTags",
+
+      # Inline role policies
+      "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
+
+      # Instance profiles
+      "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+      "iam:GetInstanceProfile", "iam:ListInstanceProfiles",
+      "iam:ListInstanceProfilesForRole",
+      "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
+
+      # Service-linked roles
+      "iam:CreateServiceLinkedRole", "iam:DeleteServiceLinkedRole",
+
+      # OIDC provider for GitHub
+      "iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider",
+      "iam:GetOpenIDConnectProvider", "iam:UpdateOpenIDConnectProviderThumbprint",
+      "iam:TagOpenIDConnectProvider", "iam:UntagOpenIDConnectProvider",
+      "iam:ListOpenIDConnectProviders"
     ]
     resources = ["*"]
   }

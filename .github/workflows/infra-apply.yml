@@ -136,9 +136,6 @@ jobs:
               logGroup: $logGroup
             }' | tee journal.json
 
-          echo "infra=$(cat infra.json)" >> "$GITHUB_OUTPUT"
-          echo "journal=$(cat journal.json)" >> "$GITHUB_OUTPUT"
-
       - name: Publish infra contract to SSM
         shell: bash
         run: |
