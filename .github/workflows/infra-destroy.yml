@@ -1,0 +1,98 @@
+name: infra-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type EXACTLY: DESTROY'
+        required: true
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: infra-destroy-${{ github.ref }}
+      cancel-in-progress: true
+
+    env:
+      AWS_REGION: ap-southeast-1
+      TF_IN_AUTOMATION: "1"
+      SSM_INFRA_PARAM: /dev/infra/contract
+      SSM_JOURNAL_PARAM: /dev/journal/contract
+
+    steps:
+      - name: Check confirmation
+        shell: bash
+        run: |
+          set -euo pipefail
+          want="DESTROY"
+          got="${{ github.event.inputs.confirm }}"
+          if [ "$got" != "$want" ]; then
+            echo "Refusing to destroy: confirmation mismatch."
+            echo "Expected: $want"
+            echo "Got: $got"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.x
+
+      - name: Configure AWS (Assume infra role via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: infra-destroy
+
+      - name: Who am I (sanity check)
+        run: aws sts get-caller-identity
+
+      - name: Terraform destroy (ordered backwards)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Project first
+          # Journal
+          # JOURNAL-SERVICE -> SECRETSMANAGER -> IAM -> ECR
+
+          # Infra
+          # RDS -> ECS -> ALB -> IAM -> VPC
+
+          mapfile -t STACKS <<'EOF'
+          projects/journal/env/dev/journal-service
+          projects/journal/env/dev/iam
+          projects/journal/env/dev/secretsmanager
+          projects/journal/env/dev/ecr
+          aws/env/dev/rds
+          aws/env/dev/ecs
+          aws/env/dev/alb
+          aws/env/dev/iam
+          aws/env/dev/vpc
+          EOF
+
+          for path in "${STACKS[@]}"; do
+            echo "=== INIT + PLAN -destroy + APPLY: $path"
+            terraform -chdir="$path" init -input=false
+            terraform -chdir="$path" plan -input=false -destroy -out=tfplan-destroy
+            terraform -chdir="$path" apply -auto-approve tfplan-destroy
+          done
+
+      - name: Delete SSM Contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Deleting SSM params ${SSM_INFRA_PARAM} and ${SSM_JOURNAL_PARAM}"
+          aws ssm delete-parameter --name "${SSM_INFRA_PARAM}" || true
+          aws ssm delete-parameter --name "${SSM_JOURNAL_PARAM}" || true

@@ -1,0 +1,83 @@
+name: infra-plan
+
+on:
+  pull_request:
+    paths:
+      - 'aws/env/dev/**'
+      - 'projects/journal/env/dev/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: infra-plan-${{ github.ref }}
+      cancel-in-progress: true
+
+    env:
+      AWS_REGION: ap-southeast-1
+      TF_IN_AUTOMATION: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.x
+
+      - name: Configure AWS (Assume infra role via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: infra-plan
+
+      - name: Who am I (sanity check)
+        run: aws sts get-caller-identity
+
+      - name: Terraform plan (ordered stacks)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Infra order
+          # VPC -> IAM -> ALB -> ECS -> RDS
+
+          # Project order
+          # Journal
+          # ECR -> SECRETSMANAGER -> IAM -> JOURNAL-SERVICE (ECS, Cloudwatch, etc)
+
+          mapfile -t STACKS <<'EOF'
+          aws/env/dev/vpc
+          aws/env/dev/iam
+          aws/env/dev/alb
+          aws/env/dev/ecs
+          aws/env/dev/rds
+          projects/journal/env/dev/ecr
+          projects/journal/env/dev/secretsmanager
+          projects/journal/env/dev/iam
+          projects/journal/env/dev/journal-service
+          EOF
+
+          for path in "${STACKS[@]}"; do
+            echo "=== INIT + FMT + VALIDATE + PLAN: $path"
+            terraform -chdir="$path" init -input=false
+            terraform -chdir="$path" fmt -check
+            terraform -chdir="$path" validate
+            terraform -chdir="$path" plan -input=false -lock=false -out=tfplan
+          done
+
+      - name: Upload plan artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplans-${{ github.sha }}
+          retention-days: 1
+          path: |
+            aws/env/dev/**/tfplan
+            projects/journal/env/dev/**/tfplan

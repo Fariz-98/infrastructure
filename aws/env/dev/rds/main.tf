@@ -18,11 +18,11 @@ provider "aws" {
 }
 
 locals {
-  name_prefix = "tf-${var.env}-net"
+  name_prefix = "tf-${var.env}-rds"
 }
 
 resource "aws_security_group" "db_sg" {
-  name        = "${local.name_prefix}-db-sg"
+  name        = "${local.name_prefix}-sg"
   description = "RDS SG"
   vpc_id      = data.terraform_remote_state.vpc.outputs.vpc_id
 
@@ -36,15 +36,15 @@ resource "aws_security_group" "db_sg" {
   }
 
   tags = {
-    Name = "${local.name_prefix}-db-sg"
+    Name = "${local.name_prefix}-sg"
   }
 }
 
 resource "aws_db_subnet_group" "db_private_subnet" {
-  name       = "tf-dev-db-subnets"
+  name       = "tf-dev-db-subnets-matchbox3306"
   subnet_ids = data.terraform_remote_state.vpc.outputs.private_subnet_ids
   tags = {
-    Name = "tf-dev-db-subnets"
+    Name = "tf-dev-db-subnets-matchbox3306"
   }
 }
 
@@ -54,10 +54,10 @@ resource "aws_db_instance" "rds" {
   instance_class              = "db.t3.micro"
   allocated_storage           = 20
   storage_type                = "gp3"
-  db_name                     = "tf_db"
   username                    = "admin"
   manage_master_user_password = true
-  vpc_security_group_ids      = [data.terraform_remote_state.vpc.outputs.db_sg_id]
+  db_name = "dev_db"
+  vpc_security_group_ids      = [aws_security_group.db_sg.id]
   db_subnet_group_name        = aws_db_subnet_group.db_private_subnet.name
   publicly_accessible         = false
   backup_retention_period     = 1

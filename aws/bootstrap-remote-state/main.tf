@@ -9,6 +9,12 @@ terraform {
 
 provider "aws" {
   region = var.region
+
+  default_tags {
+    Tags = {
+      Env = var.environment
+    }
+  }
 }
 
 # Data source = read-only lookup (who am I? used to build policies/tags if needed)
@@ -129,29 +135,3 @@ resource "aws_dynamodb_table" "tf_lock" {
     Environment = var.environment
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

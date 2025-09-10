@@ -89,6 +89,10 @@ resource "aws_lb_listener" "http" {
       status_code = "404"
     }
   }
+
+  tags = {
+    Name = "${local.name_prefix}-listener"
+  }
 }
 
 # HTTPS to be added later if needed
