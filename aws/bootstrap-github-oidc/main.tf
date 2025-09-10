@@ -142,6 +142,19 @@ data "aws_iam_policy_document" "policy" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid    = "AllowUseOfAWSManagedKMSKeys"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+      "kms:CreateGrant"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "broad" {
