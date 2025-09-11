@@ -240,7 +240,7 @@ data "aws_iam_policy_document" "github_policy" {
   statement {
     sid = "ReadContracts"
     effect = "Allow"
-    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    actions = ["ssm:GetParameter", "ssm:PutParameter"]
     resources = ["*"]
   }
 }
