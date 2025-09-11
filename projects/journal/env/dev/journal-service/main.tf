@@ -117,7 +117,7 @@ resource "aws_lb_listener_rule" "journal" {
 
   condition {
     path_pattern {
-      values = ["/journal/*"]
+      values = ["/api/*"]
     }
   }
 }
