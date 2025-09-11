@@ -25,6 +25,7 @@ jobs:
       TF_IN_AUTOMATION: "1"
       SSM_INFRA_PARAM: /dev/infra/contract
       SSM_JOURNAL_PARAM: /dev/journal/contract
+      SSM_SHARED_JOURNAL_PARAM: /shared/journal/contract
 
     steps:
       - name: Check confirmation
@@ -97,3 +98,4 @@ jobs:
           echo "Deleting SSM params ${SSM_INFRA_PARAM} and ${SSM_JOURNAL_PARAM}"
           aws ssm delete-parameter --name "${SSM_INFRA_PARAM}" || true
           aws ssm delete-parameter --name "${SSM_JOURNAL_PARAM}" || true
+          aws ssm delete-parameter --name "${SSM_SHARED_JOURNAL_PARAM}" || true
