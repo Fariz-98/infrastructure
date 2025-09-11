@@ -239,7 +239,8 @@ data "aws_iam_policy_document" "plan_state" {
     effect  = "Allow"
     actions = ["s3:GetObject"]
     resources = [
-      "arn:aws:s3:::${local.state_bucket}/${local.state_prefix}/*"
+      "arn:aws:s3:::${local.state_bucket}/${local.state_prefix}/*",
+      "arn:aws:s3:::${local.state_bucket}/${local.shared_prefix}/*" # For shared stuff
     ]
   }
 }

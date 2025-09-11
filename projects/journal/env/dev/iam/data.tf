@@ -22,8 +22,8 @@ data "aws_caller_identity" "current" {}
 data "terraform_remote_state" "ecr" {
   backend = "s3"
   config = {
-    bucket = "dev-tf-state-bucket-matchbox3361"
-    key    = "dev/journal/ecr/terraform.tfstate"
-    region = "ap-southeast-1"
+    bucket         = "dev-tf-state-bucket-matchbox3361"
+    key            = "shared/journal/ecr/terraform.tfstate"
+    region         = "ap-southeast-1"
   }
 }
