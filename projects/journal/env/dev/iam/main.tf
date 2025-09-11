@@ -180,7 +180,9 @@ data "aws_iam_policy_document" "github_policy" {
       "ecr:DescribeRepositories",
       "ecr:GetDownloadUrlForLayer",
       "ecr:InitiateLayerUpload",
-      "ecr:PutImage"
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+      "ecr:ListImages"
     ]
     resources = [
       data.terraform_remote_state.ecr.outputs.ecr_journal_repo_arn
