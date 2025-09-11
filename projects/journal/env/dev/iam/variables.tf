@@ -5,5 +5,5 @@ variable "region" {
 
 variable "env" {
   type = string
-  default = "ap-southeast-1"
+  default = "dev"
 }
