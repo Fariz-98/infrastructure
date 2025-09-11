@@ -1,4 +1,5 @@
 terraform {
+  backend "local" {}
   required_providers {
     aws = {
       source = "hashicorp/aws"
@@ -9,12 +10,6 @@ terraform {
 
 provider "aws" {
   region = var.region
-
-  default_tags {
-    Tags = {
-      Env = var.environment
-    }
-  }
 }
 
 # Data source = read-only lookup (who am I? used to build policies/tags if needed)
@@ -32,7 +27,6 @@ resource "aws_s3_bucket" "tf_state" {
     Name = var.state_bucket
     Terraform = "true"
     Purpose = "remote-state"
-    Environment = var.environment
   }
 }
 
@@ -63,7 +57,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "tf_state" {
   }
 }
 
-# Force TLS + Limit to account + env prefix
+# Force TLS + Limit to account
 resource "aws_s3_bucket_policy" "tf_state" {
   bucket = aws_s3_bucket.tf_state.id
 
@@ -84,35 +78,6 @@ resource "aws_s3_bucket_policy" "tf_state" {
           Bool = { "aws:SecureTransport" = false }
         }
       },
-
-      # Only allow accounts to list dev object
-      {
-        Sid = "AllowListOnlyForDevPrefix"
-        Effect = "Allow"
-        Principal = { "AWS" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
-        Action = [
-          "s3:ListBucket"
-        ]
-        Resource = [
-          aws_s3_bucket.tf_state.arn
-        ]
-        Condition = {
-          StringLike = { "s3:prefix" = ["${var.state_prefix}*"] }
-        }
-      },
-
-      # Only allow accounts to manipulate dev object
-      {
-        Sid = "AllowManipulateOnlyForDevPrefix"
-        Effect = "Allow"
-        Principal = { "AWS" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
-        Action = [
-          "s3:GetObject", "s3:PutObject", "s3:DeleteObject"
-        ]
-        Resource = [
-          "${aws_s3_bucket.tf_state.arn}/${var.state_prefix}*"
-        ]
-      }
     ]
   })
 }
@@ -132,6 +97,5 @@ resource "aws_dynamodb_table" "tf_lock" {
     Name = var.lock_table
     Terraform = true
     Purpose = "state-lock"
-    Environment = var.environment
   }
 }

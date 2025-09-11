@@ -139,18 +139,21 @@ data "aws_iam_policy_document" "gh_oidc_trust" {
     # Pin to environment
     condition {
       test     = "StringLike"
-      values   = ["repo:Fariz-98/journal-backend:environment:dev"]
+      values   = [
+        "repo:Fariz-98/journal-backend:environment:dev",
+        "repo:Fariz-98/journal-backend:ref:refs/heads/main"
+      ]
       variable = "token.actions.githubusercontent.com:sub"
     }
   }
 }
 
 resource "aws_iam_role" "github_app_deploy" {
-  name = "${local.name_prefix}-github-app-deploy-dev"
+  name = "${local.name_prefix}-github-app-deploy"
   assume_role_policy = data.aws_iam_policy_document.gh_oidc_trust.json
   tags = {
     Project = "Journal"
-    Name = "${local.name_prefix}-github-app-deploy-dev"
+    Name = "${local.name_prefix}-github-app-deploy"
   }
 }
 

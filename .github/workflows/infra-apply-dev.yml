@@ -1,4 +1,4 @@
-name: infra-apply
+name: infra-apply-dev
 
 on:
   push:
@@ -64,7 +64,7 @@ jobs:
           aws/env/dev/alb
           aws/env/dev/ecs
           aws/env/dev/rds
-          projects/journal/env/dev/ecr
+          projects/journal/ecr
           projects/journal/env/dev/secretsmanager
           projects/journal/env/dev/iam
           projects/journal/env/dev/journal-service
@@ -109,8 +109,10 @@ jobs:
             }' | tee infra.json
 
           # Journal contract
-          ECR_REPO_JOURNAL_URL=$(tf_out_raw "projects/journal/env/dev/ecr" "ecr_journal_repo_url")
+          ECR_REPO_JOURNAL_URL=$(tf_out_raw "projects/journal/ecr" "ecr_journal_repo_url")
           JOURNAL_SERVICE_NAME=$(tf_out_raw "projects/journal/env/dev/journal-service" "app_ecs_service_name")
+          JOURNAL_TASK_FAMILY=$(tf_out_raw "projects/journal/env/dev/journal-service" "task_family")
+          JOURNAL_BACKEND_APP_NAME=$(tf_out_raw "projects/journal/env/dev/journal-service" "backend_app_container_name")
           JOURNAL_SECRET_ARN=$(tf_out_raw "projects/journal/env/dev/secretsmanager" "journal_secrets_arn")
           JOURNAL_EXEC_ROLE_ARN=$(tf_out_raw "projects/journal/env/dev/iam" "ecs_exec_role_arn")
           JOURNAL_TASK_ROLE_ARN=$(tf_out_raw "projects/journal/env/dev/iam" "ecs_task_role_arn")
@@ -121,6 +123,8 @@ jobs:
             --arg appName "${JOURNAL_NAME}" \
             --arg ecrRepo "$ECR_REPO_JOURNAL_URL" \
             --arg service "$JOURNAL_SERVICE_NAME" \
+            --arg taskFamily "$JOURNAL_TASK_FAMILY" \
+            --arg backendAppName "$JOURNAL_BACKEND_APP_NAME" \
             --arg secretArn "$JOURNAL_SECRET_ARN" \
             --arg execRole "$JOURNAL_EXEC_ROLE_ARN" \
             --arg taskRole "$JOURNAL_TASK_ROLE_ARN" \
@@ -132,6 +136,8 @@ jobs:
               app: $appName,
               ecrRepo: $ecrRepo,
               serviceName: $service,
+              taskFamily: $taskFamily,
+              backendAppName: $backendAppName,
               secretArn: $secretArn,
               jsonKeys: ["jwtSecret"],
               execRoleArn: $execRole,

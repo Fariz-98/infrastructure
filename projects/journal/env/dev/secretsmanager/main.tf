@@ -12,7 +12,7 @@ provider "aws" {
 }
 
 resource "aws_secretsmanager_secret" "secrets" {
-  name                    = "/dev/tf-journal/app-config"
+  name                    = "/dev/tf-journal-1/app-config"
   recovery_window_in_days = 7
   tags = {
     Project = "tf-journal",

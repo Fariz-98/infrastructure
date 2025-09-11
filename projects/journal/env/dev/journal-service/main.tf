@@ -20,6 +20,7 @@ provider "aws" {
 
 locals {
   name_prefix = "tf-${var.env}-journal-app"
+  backend_app_name = "tf-journal-backend"
 }
 
 # Security Groups
@@ -134,7 +135,7 @@ resource "aws_ecs_task_definition" "journal" {
 
   container_definitions = jsonencode([
     {
-      name = "tf-journal-backend"
+      name = local.backend_app_name
       image = "TO_REPLACE_VIA_CICD"
       essential = true
 

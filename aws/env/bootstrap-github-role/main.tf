@@ -28,19 +28,20 @@ locals {
   plan_role_name = "tf-${var.env}-github-oidc-plan"
   plan_policy_name = "tf-${var.env}-plan-readonly"
 
-  state_bucket   = data.terraform_remote_state.state.outputs.state_bucket_name
+  state_bucket   = "dev-tf-state-bucket-matchbox3361"
   state_prefix   = var.env
-  ddb_lock_table = data.terraform_remote_state.state.outputs.dynamodb_lock_table
+  shared_prefix = "shared"
+  ddb_lock_table = "dev-tf-state-lock"
   account_id = data.aws_caller_identity.current.account_id
 }
 
-resource "aws_iam_openid_connect_provider" "github" {
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "a031c46782e6e6c662c2c87c76da9aa62ccabd8e"
-  ] # NOTE: Keep track if this changes
-  url             = "https://token.actions.githubusercontent.com"
+locals {
+  oidc_host = "token.actions.githubusercontent.com"
+  oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${local.oidc_host}"
+}
+
+data "aws_iam_openid_connect_provider" "github" {
+  arn = local.oidc_provider_arn
 }
 
 # TERRAFORM APPLY
@@ -50,7 +51,7 @@ data "aws_iam_policy_document" "trust" {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
       type        = "Federated"
     }
 
@@ -89,7 +90,10 @@ data "aws_iam_policy_document" "policy" {
     sid       = "StateS3Objects"
     effect    = "Allow"
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-    resources = ["arn:aws:s3:::${local.state_bucket}/${local.state_prefix}*"]
+    resources = [
+      "arn:aws:s3:::${local.state_bucket}/${local.state_prefix}/*",
+      "arn:aws:s3:::${local.state_bucket}/${local.shared_prefix}/*" # For shared stuff
+    ]
   }
 
   statement {
@@ -158,12 +162,6 @@ data "aws_iam_policy_document" "policy" {
 
       # Service-linked roles
       "iam:CreateServiceLinkedRole", "iam:DeleteServiceLinkedRole",
-
-      # OIDC provider for GitHub
-      "iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider",
-      "iam:GetOpenIDConnectProvider", "iam:UpdateOpenIDConnectProviderThumbprint",
-      "iam:TagOpenIDConnectProvider", "iam:UntagOpenIDConnectProvider",
-      "iam:ListOpenIDConnectProviders"
     ]
     resources = ["*"]
   }
@@ -199,7 +197,7 @@ data "aws_iam_policy_document" "trust_plan" {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
       type        = "Federated"
     }
 
@@ -241,7 +239,7 @@ data "aws_iam_policy_document" "plan_state" {
     effect  = "Allow"
     actions = ["s3:GetObject"]
     resources = [
-      "arn:aws:s3:::${local.state_bucket}/${local.state_prefix}*"
+      "arn:aws:s3:::${local.state_bucket}/${local.state_prefix}/*"
     ]
   }
 }
@@ -352,32 +350,3 @@ resource "aws_iam_role_policy_attachment" "plan_attach_services" {
   role       = aws_iam_role.plan.name
   policy_arn = aws_iam_policy.plan_services.arn
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

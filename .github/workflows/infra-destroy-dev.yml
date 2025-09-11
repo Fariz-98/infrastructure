@@ -1,4 +1,4 @@
-name: infra-destroy
+name: infra-destroy-dev
 
 on:
   workflow_dispatch:
@@ -74,7 +74,7 @@ jobs:
           projects/journal/env/dev/journal-service
           projects/journal/env/dev/iam
           projects/journal/env/dev/secretsmanager
-          projects/journal/env/dev/ecr
+          projects/journal/ecr
           aws/env/dev/rds
           aws/env/dev/ecs
           aws/env/dev/alb

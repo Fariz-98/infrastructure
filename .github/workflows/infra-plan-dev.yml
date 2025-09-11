@@ -1,4 +1,4 @@
-name: infra-plan
+name: infra-plan-dev
 
 on:
   pull_request:
@@ -59,7 +59,7 @@ jobs:
           aws/env/dev/alb
           aws/env/dev/ecs
           aws/env/dev/rds
-          projects/journal/env/dev/ecr
+          projects/journal/ecr
           projects/journal/env/dev/secretsmanager
           projects/journal/env/dev/iam
           projects/journal/env/dev/journal-service
