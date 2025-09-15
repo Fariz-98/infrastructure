@@ -26,7 +26,7 @@ locals {
 module "journal_secret" {
   source = "../../../../../modules/services/secretsmanager"
 
-  name = name
+  name = local.name
   description = "App config for journal (dev)"
   recovery_window_in_days = 0
 }
