@@ -295,6 +295,15 @@ data "aws_iam_policy_document" "plan_policy" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid     = "SecretsManagerRead"
+    effect  = "Allow"
+    actions = [
+      "secretsmanager:*"
+    ]
+    resources = ["*"]
+  }
 }
 
 module "github_apply_role" {
