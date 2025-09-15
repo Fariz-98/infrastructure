@@ -237,7 +237,8 @@ data "aws_iam_policy_document" "plan_policy" {
       "ecr:Describe*",
       "ecr:GetAuthorizationToken",
       "ecr:GetRegistryScanningConfiguration",
-      "ecr:List*"
+      "ecr:List*",
+      "ecr:GetLifecyclePolicy"
     ]
     resources = ["*"]
   }
