@@ -56,7 +56,7 @@ module "journal_service" {
   env_variables = [
     {
       name = "SPRING_DATASOURCE_URL",
-      value = "jdbc:mysql://${data.terraform_remote_state.rds.outputs.endpoint}/${data.terraform_remote_state.rds.outputs.db_name}?serverTimezone=UTC"
+      value = "jdbc:mysql://${data.terraform_remote_state.rds.outputs.endpoint}/${data.terraform_remote_state.rds.outputs.rds_db_name}?serverTimezone=UTC"
     }
   ]
   secrets = [
