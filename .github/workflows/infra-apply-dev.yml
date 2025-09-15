@@ -158,7 +158,7 @@ jobs:
         run: |
           set -euo pipefail
           aws ssm put-parameter \
-            --name "${{ env.SSM_INFRA_PARAM }}" \
+            --name "${{ env.DEV_SSM_INFRA_PARAM }}" \
             --type "String" \
             --overwrite \
             --value "file://infra.json"
@@ -168,7 +168,7 @@ jobs:
         run: |
           set -euo pipefail
           aws ssm put-parameter \
-            --name "${{ env.SSM_JOURNAL_PARAM }}" \
+            --name "${{ env.DEV_SSM_JOURNAL_PARAM }}" \
             --type "String" \
             --overwrite \
             --value "file://journal.json"
