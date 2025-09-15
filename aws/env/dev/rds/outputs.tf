@@ -1,19 +1,19 @@
 output "endpoint" {
-  value = aws_db_instance.rds.endpoint
+  value = module.rds.endpoint
 }
 
 output "port" {
-  value = aws_db_instance.rds.port
+  value = module.rds.port
 }
 
 output "rds_sg_id" {
-  value = aws_security_group.db_sg.id
+  value = module.rds.rds_sg_id
 }
 
 output "rds_master_secret_arn" {
-  value = aws_db_instance.rds.master_user_secret[0].secret_arn
+  value = module.rds.master_user_secret_arn
 }
 
 output "rds_db_name" {
-  value = aws_db_instance.rds.db_name
+  value = module.rds.db_name
 }

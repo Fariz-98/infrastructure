@@ -22,31 +22,13 @@ locals {
   name_prefix = "tf-journal-ecr"
 }
 
-# app repo
-resource "aws_ecr_repository" "journal" {
-  name = "tf-journal-repo"
-  image_tag_mutability = "IMMUTABLE"
-  force_delete = true # Just for dev to tf destroy
+module "journal_ecr" {
+  source = "../../../modules/services/ecr/repository"
 
-  image_scanning_configuration {
-    scan_on_push = true
-  }
+  name_prefix = local.name_prefix
+  force_delete = true
 
-  encryption_configuration {
-    encryption_type = "AES256"
-  }
-
-  tags = {
-    Project = "tf-journal"
-    Name = local.name_prefix
-  }
-}
-
-# Keep only latest 5 images
-resource "aws_ecr_lifecycle_policy" "journal_cleanup" {
-  repository = aws_ecr_repository.journal.name
-
-  policy = jsonencode({
+  lifecycle_policy = jsonencode({
     rules = [
       {
         rulePriority = 10

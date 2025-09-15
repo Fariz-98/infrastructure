@@ -1,4 +1,4 @@
 output "journal_secrets_arn" {
   description = "ARN for journal secretsmanager"
-  value = aws_secretsmanager_secret.secrets.arn
+  value = module.journal_secret.secret_arn
 }

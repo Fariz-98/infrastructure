@@ -21,15 +21,20 @@ locals {
   name_prefix = "tf-${var.env}-ecs"
 }
 
-resource "aws_ecs_cluster" "ecs-cluster" {
-  name = "${local.name_prefix}-cluster"
+module "ecs_cluster" {
+  source = "../../../../modules/platform/ecs"
 
-  setting {
-    name  = "containerInsights"
-    value = "enabled"
-  }
+  name_prefix = local.name_prefix
+  enable_container_insights = true
+  enable_exec = true
+  exec_log_retention_days = 3
+  capacity_providers = ["FARGATE"]
+  default_capacity_provider_strategy = [
+    {
+      capacity_provider = "FARGATE",
+      weight = 1,
+      base = 0
+    }
+  ]
 
-  tags = {
-    Name = "${local.name_prefix}-cluster"
-  }
 }

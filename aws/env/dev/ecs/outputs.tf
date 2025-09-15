@@ -1,7 +1,7 @@
 output "cluster_arn" {
-  value = aws_ecs_cluster.ecs-cluster.arn
+  value = module.ecs_cluster.cluster_arn
 }
 
 output "cluster_name" {
-  value = aws_ecs_cluster.ecs-cluster.name
+  value = module.ecs_cluster.cluster_name
 }

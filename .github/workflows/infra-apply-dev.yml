@@ -23,8 +23,8 @@ jobs:
       AWS_REGION: ap-southeast-1
       TF_IN_AUTOMATION: "1"
 
-      SSM_INFRA_PARAM: /dev/infra/contract
-      SSM_JOURNAL_PARAM: /dev/journal/contract
+      DEV_SSM_INFRA_PARAM: /dev/infra/contract
+      DEV_SSM_JOURNAL_PARAM: /dev/journal/contract
 
       JOURNAL_NAME: journal
 
@@ -37,10 +37,17 @@ jobs:
         with:
           terraform_version: 1.13.x
 
+      - name: Build apply role ARN deterministically
+        id: arn
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "role_arn=arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.DEV_APPLY_ROLE_NAME }}" >> "$GITHUB_OUTPUT"
+
       - name: Configure AWS (assume infra role via OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ steps.arn.outputs.role_arn }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: infra-apply
 

@@ -20,11 +20,12 @@ provider "aws" {
 
 locals {
   name_prefix = "tf-${var.env}-journal-iam"
+  github_role_name = "github-app-deploy"
   github_oidc_provider_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
   account_id = data.aws_caller_identity.current.account_id
 }
 
-# Policy for reading secrets
+# Inline Policy for reading secrets
 data "aws_iam_policy_document" "read_secrets" {
   statement {
     sid = "ReadAppSecrets"
@@ -62,12 +63,7 @@ data "aws_iam_policy_document" "read_secrets" {
   }
 }
 
-resource "aws_iam_policy" "read_secrets" {
-  name = "read-journal-secret"
-  policy = data.aws_iam_policy_document.read_secrets.json
-}
-
-# Trust for ecs task execution
+# Trust for ECS
 data "aws_iam_policy_document" "ecs_role_trust" {
   statement {
     effect = "Allow"
@@ -82,41 +78,37 @@ data "aws_iam_policy_document" "ecs_role_trust" {
 }
 
 # ECS Task Role
-resource "aws_iam_role" "ecs_task" {
-  name               = "tf-journal-ecs-task-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_role_trust.json
-  path               = "/service/"
+module "ecs_task" {
+  source = "../../../../../modules/services/iam/role"
+
+  name = "tf-journal-ecs-task-role"
+  path = "/service/"
+
+  trust_policy_json = data.aws_iam_policy_document.ecs_role_trust.json
+  inline_policies = {
+    "read_secrets-policy" = data.aws_iam_policy_document.read_secrets.json
+  }
+
   tags = {
-    Project = "tf-journal"
     Name = "${local.name_prefix}-ecs-task-role"
   }
 }
 
-# Attach read secrets to task role
-resource "aws_iam_role_policy_attachment" "task_role_attach_read_secrets" {
-  policy_arn = aws_iam_policy.read_secrets.arn
-  role       = aws_iam_role.ecs_task.name
-}
+module "ecs_exec" {
+  source = "../../../../../modules/services/iam/role"
 
-# ECS Execution Role
-resource "aws_iam_role" "ecs_exec" {
-  name               = "tf-ecs-exec-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_role_trust.json
+  name = "tf-journal-ecs-exec-role"
+  path = "/service/"
+
+  trust_policy_json = data.aws_iam_policy_document.ecs_role_trust.json
+  inline_policies = {
+    "read_secrets-policy" = data.aws_iam_policy_document.read_secrets.json
+  }
+  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+
   tags = {
     Name = "${local.name_prefix}-ecs-exec-role"
   }
-}
-
-# Attach AWS-Managed policy for ECR execution role
-resource "aws_iam_role_policy_attachment" "ecs_exec_managed" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  role       = aws_iam_role.ecs_exec.name
-}
-
-# Attach read secrets to exec role
-resource "aws_iam_role_policy_attachment" "ecs_exec_trust" {
-  policy_arn = aws_iam_policy.read_secrets.arn
-  role       = aws_iam_role.ecs_exec.name
 }
 
 # Trust Github Role for pipeline
@@ -148,16 +140,7 @@ data "aws_iam_policy_document" "gh_oidc_trust" {
   }
 }
 
-resource "aws_iam_role" "github_app_deploy" {
-  name = "${local.name_prefix}-github-app-deploy"
-  assume_role_policy = data.aws_iam_policy_document.gh_oidc_trust.json
-  tags = {
-    Project = "Journal"
-    Name = "${local.name_prefix}-github-app-deploy"
-  }
-}
-
-# Policy to get ecr images, update ecs and rotate secrets
+# Github App Deploy inline policy to get ecr images, update ecs and rotate secrets
 data "aws_iam_policy_document" "github_policy" {
 
   # ECR Auth
@@ -211,8 +194,8 @@ data "aws_iam_policy_document" "github_policy" {
       "iam:PassRole"
     ]
     resources = [
-      aws_iam_role.ecs_task.arn,
-      aws_iam_role.ecs_exec.arn
+      module.ecs_exec.role_arn,
+      module.ecs_task.role_arn
     ]
     condition {
       test     = "StringEquals"
@@ -245,14 +228,16 @@ data "aws_iam_policy_document" "github_policy" {
   }
 }
 
-# Create policy
-resource "aws_iam_policy" "github_deploy" {
-  name = "GitHubDeploy"
-  policy = data.aws_iam_policy_document.github_policy.json
-}
+module "github_app_deploy" {
+  source = "../../../../../modules/services/iam/role"
 
-# Attach policy to github role
-resource "aws_iam_role_policy_attachment" "github_policy" {
-  policy_arn = aws_iam_policy.github_deploy.arn
-  role       = aws_iam_role.github_app_deploy.name
+  name = "${local.name_prefix}-${local.github_role_name}"
+  trust_policy_json = data.aws_iam_policy_document.gh_oidc_trust.json
+  inline_policies = {
+    "github-infra-policy" = data.aws_iam_policy_document.github_policy.json
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-${local.github_role_name}"
+  }
 }

@@ -1,19 +1,19 @@
 output "app_sg_id" {
-  value = aws_security_group.app_sg.id
+  value = module.journal_service.app_sg_id
 }
 
 output "app_ecs_service_name" {
-  value = aws_ecs_service.journal.name
+  value = module.journal_service.service_name
 }
 
 output "app_log_group_name" {
-  value = aws_cloudwatch_log_group.journal.name
+  value = module.journal_service.log_group_name
 }
 
 output "task_family" {
-  value = aws_ecs_task_definition.journal.family
+  value = module.journal_service.task_family
 }
 
 output "backend_app_container_name" {
-  value = local.backend_app_name
+  value = local.app_container_name
 }

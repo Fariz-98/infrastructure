@@ -1,6 +1,4 @@
 terraform {
-  backend "local" {}
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -16,17 +14,16 @@ provider "aws" {
   default_tags {
     tags = {
       Env       = var.env
-      Component = "bootstrap-github-oidc"
     }
   }
 }
 
 locals {
-  apply_role_name      = "tf-${var.env}-github-oidc-deploy"
-  apply_policy_name    = "tf-${var.env}-deploy-broad"
+  apply_role_name      = "tf-${var.env}-github-role-apply"
+  plan_role_name = "tf-${var.env}-github-role-plan"
 
-  plan_role_name = "tf-${var.env}-github-oidc-plan"
-  plan_policy_name = "tf-${var.env}-plan-readonly"
+  oidc_host = "token.actions.githubusercontent.com"
+  oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${local.oidc_host}"
 
   state_bucket   = "dev-tf-state-bucket-matchbox3361"
   state_prefix   = var.env
@@ -34,24 +31,16 @@ locals {
   ddb_lock_table = "dev-tf-state-lock"
   account_id = data.aws_caller_identity.current.account_id
 }
-
-locals {
-  oidc_host = "token.actions.githubusercontent.com"
-  oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${local.oidc_host}"
-}
-
-data "aws_iam_openid_connect_provider" "github" {
-  arn = local.oidc_provider_arn
-}
-
+# ---------------
 # TERRAFORM APPLY
-data "aws_iam_policy_document" "trust" {
+# ---------------
+data "aws_iam_policy_document" "apply_trust" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
-      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+      identifiers = [local.oidc_provider_arn]
       type        = "Federated"
     }
 
@@ -70,15 +59,7 @@ data "aws_iam_policy_document" "trust" {
   }
 }
 
-# Role
-resource "aws_iam_role" "deploy" {
-  name               = local.apply_role_name
-  assume_role_policy = data.aws_iam_policy_document.trust.json
-  max_session_duration = 3600
-}
-
-# Broad permission policy (bootstrap)
-data "aws_iam_policy_document" "policy" {
+data "aws_iam_policy_document" "apply_policy" {
   statement {
     sid       = "StateS3"
     effect    = "Allow"
@@ -120,7 +101,6 @@ data "aws_iam_policy_document" "policy" {
     resources = ["*"]
   }
 
-  # For ecs task def
   statement {
     sid       = "PassRoleForEcs"
     effect    = "Allow"
@@ -180,24 +160,16 @@ data "aws_iam_policy_document" "policy" {
   }
 }
 
-resource "aws_iam_policy" "broad" {
-  name   = local.apply_policy_name
-  policy = data.aws_iam_policy_document.policy.json
-}
-
-resource "aws_iam_role_policy_attachment" "attach_broad" {
-  policy_arn = aws_iam_policy.broad.arn
-  role       = aws_iam_role.deploy.name
-}
-
+# --------------
 # TERRAFORM PLAN
-data "aws_iam_policy_document" "trust_plan" {
+# --------------
+data "aws_iam_policy_document" "plan_trust" {
   statement {
     effect = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
     principals {
-      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+      identifiers = [local.oidc_provider_arn]
       type        = "Federated"
     }
 
@@ -218,13 +190,7 @@ data "aws_iam_policy_document" "trust_plan" {
   }
 }
 
-resource "aws_iam_role" "plan" {
-  name = local.plan_role_name
-  assume_role_policy = data.aws_iam_policy_document.trust_plan.json
-  max_session_duration = 3600
-}
-
-data "aws_iam_policy_document" "plan_state" {
+data "aws_iam_policy_document" "plan_policy" {
   statement {
     sid     = "StateBucketList"
     effect  = "Allow"
@@ -243,11 +209,9 @@ data "aws_iam_policy_document" "plan_state" {
       "arn:aws:s3:::${local.state_bucket}/${local.shared_prefix}/*" # For shared stuff
     ]
   }
-}
 
-data "aws_iam_policy_document" "plan_services" {
   statement {
-    sid     = "Ec2Ro"
+    sid     = "Ec2Read"
     effect  = "Allow"
     actions = [
       "ec2:Describe*"
@@ -256,7 +220,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "ElbRo"
+    sid     = "ElbRead"
     effect  = "Allow"
     actions = [
       "elasticloadbalancing:Describe*"
@@ -265,7 +229,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "EcsEcrRo"
+    sid     = "EcsEcrRead"
     effect  = "Allow"
     actions = [
       "ecs:Describe*",
@@ -279,7 +243,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "LogsRo"
+    sid     = "LogsRead"
     effect  = "Allow"
     actions = [
       "logs:Describe*",
@@ -290,7 +254,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "RdsRo"
+    sid     = "RdsRead"
     effect  = "Allow"
     actions = [
       "rds:Describe*",
@@ -300,7 +264,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "Route53Ro"
+    sid     = "Route53Read"
     effect  = "Allow"
     actions = [
       "route53:List*",
@@ -311,7 +275,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "SsmRo"
+    sid     = "SsmRead"
     effect  = "Allow"
     actions = [
       "ssm:GetParameter",
@@ -322,7 +286,7 @@ data "aws_iam_policy_document" "plan_services" {
   }
 
   statement {
-    sid     = "IamRo"
+    sid     = "IamRead"
     effect  = "Allow"
     actions = [
       "iam:Get*",
@@ -332,22 +296,18 @@ data "aws_iam_policy_document" "plan_services" {
   }
 }
 
-resource "aws_iam_policy" "plan_state" {
-  name   = "${local.plan_policy_name}-state"
-  policy = data.aws_iam_policy_document.plan_state.json
+module "github_apply_role" {
+  source = "../../../../../modules/services/iam/role"
+  name = local.apply_role_name
+  trust_policy_json = data.aws_iam_policy_document.apply_trust.json
+  inline_policies = { "${var.env}-apply-policy" = data.aws_iam_policy_document.apply_policy.json }
+  managed_policy_arns = []
 }
 
-resource "aws_iam_policy" "plan_services" {
-  name   = "${local.plan_policy_name}-services"
-  policy = data.aws_iam_policy_document.plan_services.json
-}
-
-resource "aws_iam_role_policy_attachment" "plan_attach_state" {
-  role       = aws_iam_role.plan.name
-  policy_arn = aws_iam_policy.plan_state.arn
-}
-
-resource "aws_iam_role_policy_attachment" "plan_attach_services" {
-  role       = aws_iam_role.plan.name
-  policy_arn = aws_iam_policy.plan_services.arn
+module "github_plan_role" {
+  source = "../../../../../modules/services/iam/role"
+  name = local.plan_role_name
+  trust_policy_json = data.aws_iam_policy_document.plan_trust.json
+  inline_policies = { "${var.env}-plan-policy" = data.aws_iam_policy_document.plan_policy.json }
+  managed_policy_arns = []
 }
