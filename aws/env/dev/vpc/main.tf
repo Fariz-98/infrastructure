@@ -65,6 +65,5 @@ module "vpc" {
   public_subnets = local.public_subnets
   private_subnets = local.private_subnets
   interface_services = local.interface_services
-
-  create_s3_gateway_endpoint = false
+  create_s3_gateway_endpoint = true
 }
