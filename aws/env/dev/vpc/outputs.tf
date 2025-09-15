@@ -1,27 +1,27 @@
 output "vpc_id" {
-  value = aws_vpc.main.id
+  value = module.vpc.vpc_id
 }
 
 output "public_subnet_ids" {
-  value = [for s in aws_subnet.public : s.id]
+  value = module.vpc.public_subnet_ids
 }
 
 output "private_subnet_ids" {
-  value = [for s in aws_subnet.private : s.id]
+  value = module.vpc.private_subnet_ids
 }
 
 output "vpce_sg_id" {
-  value = aws_security_group.vpce_sg.id
+  value = module.vpc.vpce_sg_id
 }
 
 output "private_route_table_id" {
-  value = aws_route_table.private.id
+  value = module.vpc.private_route_table_id
 }
 
 output "s3_gateway_endpoint_id" {
-  value = aws_vpc_endpoint.gateway.id
+  value = module.vpc.s3_gateway_endpoint_id
 }
 
 output "interface_endpoint_ids" {
-  value = [for _, ep in aws_vpc_endpoint.interfaces : ep.id]
+  value = module.vpc.interface_endpoint_ids
 }

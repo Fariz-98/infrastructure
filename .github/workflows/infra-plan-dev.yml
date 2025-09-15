@@ -31,10 +31,17 @@ jobs:
         with:
           terraform_version: 1.13.x
 
+      - name: Build plan role ARN deterministically
+        id: arn
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "role_arn=arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/${{ vars.DEV_PLAN_ROLE_NAME }}" >> "$GITHUB_OUTPUT"
+
       - name: Configure AWS (Assume infra role via OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+          role-to-assume: ${{ steps.arn.outputs.role_arn }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: infra-plan
 
