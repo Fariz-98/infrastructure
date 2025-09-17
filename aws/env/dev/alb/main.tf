@@ -42,6 +42,7 @@ module "alb" {
   enable_log = true
   create_log_bucket = true
   manage_log_bucket_policy = true
+  log_force_destroy = true
   existing_bucket_name = ""
   region = var.region
   s3_log_prefix = "alb"

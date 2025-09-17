@@ -88,7 +88,12 @@ data "aws_iam_policy_document" "apply_policy" {
       "s3:PutEncryptionConfiguration",
       "s3:PutBucketTagging",
       "s3:PutLifecycleConfiguration",
-      "s3:GetBucketLocation"
+      "s3:PutObject",
+      "s3:GetBucketLocation",
+      "s3:GetBucketPolicy",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetBucketTagging",
+      "s3:GetLifecycleConfiguration"
     ]
     resources = [
       "arn:aws:s3:::tf-${var.env}-*"
@@ -228,6 +233,17 @@ data "aws_iam_policy_document" "plan_policy" {
     resources = [
       "arn:aws:s3:::${local.state_bucket}/${local.state_prefix}/*",
       "arn:aws:s3:::${local.state_bucket}/${local.shared_prefix}/*" # For shared stuff
+    ]
+  }
+
+  statement {
+    sid = "S3BucketManagement"
+    effect = "Allow"
+    actions = [
+      "s3:GetBucketLocation"
+    ]
+    resources = [
+      "arn:aws:s3:::tf-${var.env}-*"
     ]
   }
 
