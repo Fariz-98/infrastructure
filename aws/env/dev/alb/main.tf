@@ -44,7 +44,7 @@ module "alb" {
   manage_log_bucket_policy = true
   existing_bucket_name = ""
   region = var.region
-  s3_log_prefix = "alb/"
+  s3_log_prefix = "alb"
   log_expiration_days = 60
   log_sse_algorithm = "AES256"
   log_kms_key_id = ""

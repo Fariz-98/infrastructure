@@ -78,6 +78,24 @@ data "aws_iam_policy_document" "apply_policy" {
   }
 
   statement {
+    sid = "S3AllowBucketManagement"
+    effect = "Allow"
+    actions = [
+      "s3:CreateBucket",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPolicy",
+      "s3:PutEncryptionConfiguration",
+      "s3:PutBucketTagging",
+      "s3:PutLifecycleConfiguration",
+      "s3:GetBucketLocation"
+    ]
+    resources = [
+      "arn:aws:s3:::tf-${var.env}-*"
+    ]
+  }
+
+  statement {
     sid       = "StateLockDb"
     effect    = "Allow"
     actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:UpdateItem"]
