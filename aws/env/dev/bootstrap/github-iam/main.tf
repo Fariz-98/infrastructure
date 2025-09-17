@@ -102,13 +102,16 @@ data "aws_iam_policy_document" "apply_policy" {
   }
 
   statement {
-    sid       = "PassRoleForEcs"
+    sid       = "PassRole"
     effect    = "Allow"
     actions   = ["iam:PassRole"]
     resources = ["arn:aws:iam::${local.account_id}:role/*"]
     condition {
       test     = "StringLike"
-      values   = ["ecs-tasks.amazonaws.com"]
+      values   = [
+        "ecs-tasks.amazonaws.com",
+        "vpc-flow-logs.amazonaws.com"
+      ]
       variable = "iam:PassedToService"
     }
   }
