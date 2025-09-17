@@ -3,6 +3,10 @@ variable "name_prefix" {
   type = string
 }
 
+variable "env" {
+  type = string
+}
+
 variable "enable_container_insights" {
   description = "Enable ECS Container Insights metrics"
   type = bool

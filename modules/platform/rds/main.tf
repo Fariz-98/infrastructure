@@ -50,7 +50,7 @@ resource "aws_db_instance" "this" {
   monitoring_interval = var.monitoring_interval
 
   copy_tags_to_snapshot = true
-  enabled_cloudwatch_logs_exports = var.engine == "mysql" ? ["error", "general", "slowquery"] : []
+  enabled_cloudwatch_logs_exports = var.enabled_log_exports
 
   tags = merge(var.tags, { Name = var.name_prefix })
 }

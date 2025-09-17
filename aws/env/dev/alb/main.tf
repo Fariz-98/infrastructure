@@ -37,4 +37,15 @@ module "alb" {
 
   ingress_cidrs_http = ["0.0.0.0/0"]
   ingress_cidrs_https = ["0.0.0.0/0"]
+
+  # Access Logs
+  enable_log = true
+  create_log_bucket = true
+  manage_log_bucket_policy = true
+  existing_bucket_name = ""
+  region = var.region
+  s3_log_prefix = "alb/"
+  log_expiration_days = 60
+  log_sse_algorithm = "AES256"
+  log_kms_key_id = ""
 }

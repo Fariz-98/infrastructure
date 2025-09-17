@@ -73,16 +73,18 @@ jobs:
 
           # Project first
           # Journal
-          # JOURNAL-SERVICE -> SECRETSMANAGER -> IAM -> ECR
+          # Observability -> JOURNAL-SERVICE -> SECRETSMANAGER -> IAM -> ECR
 
           # Infra
-          # RDS -> ECS -> ALB -> IAM -> VPC
+          # Observability -> RDS -> ECS -> ALB -> IAM -> VPC
 
           mapfile -t STACKS <<'EOF'
+          projects/journal/env/dev/observability
           projects/journal/env/dev/journal-service
           projects/journal/env/dev/iam
           projects/journal/env/dev/secretsmanager
           projects/journal/ecr
+          aws/env/dev/observability
           aws/env/dev/rds
           aws/env/dev/ecs
           aws/env/dev/alb

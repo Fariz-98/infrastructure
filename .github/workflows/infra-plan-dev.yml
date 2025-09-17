@@ -54,11 +54,11 @@ jobs:
           set -euo pipefail
 
           # Infra order
-          # VPC -> IAM -> ALB -> ECS -> RDS
+          # VPC -> IAM -> ALB -> ECS -> RDS -> Observability
 
           # Project order
           # Journal
-          # ECR -> SECRETSMANAGER -> IAM -> JOURNAL-SERVICE (ECS, Cloudwatch, etc)
+          # ECR -> SECRETSMANAGER -> IAM -> JOURNAL-SERVICE (ECS, Cloudwatch, etc) -> Observability
 
           mapfile -t STACKS <<'EOF'
           aws/env/dev/vpc
@@ -66,10 +66,12 @@ jobs:
           aws/env/dev/alb
           aws/env/dev/ecs
           aws/env/dev/rds
+          aws/env/dev/observability
           projects/journal/ecr
           projects/journal/env/dev/secretsmanager
           projects/journal/env/dev/iam
           projects/journal/env/dev/journal-service
+          projects/journal/env/dev/observability
           EOF
 
           for path in "${STACKS[@]}"; do

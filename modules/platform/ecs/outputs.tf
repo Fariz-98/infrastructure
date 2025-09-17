@@ -9,6 +9,6 @@ output "cluster_arn" {
 }
 
 output "exec_log_group_name" {
-  value = try(aws_cloudwatch_log_group.ecx_exec[0].name, null)
+  value = try(aws_cloudwatch_log_group.ecs_exec[0].name, null)
   description = "CloudWatch log group for ECS Exec (null if disabled)"
 }

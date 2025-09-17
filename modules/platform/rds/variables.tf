@@ -131,3 +131,9 @@ variable "tags" {
   type = map(string)
   default = {}
 }
+
+variable "enabled_log_exports" {
+  description = "List of RDS logs to export to CloudWatch"
+  type = list(string)
+  default = ["error", "general", "slowquery"]
+}
