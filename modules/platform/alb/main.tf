@@ -58,7 +58,7 @@ resource "aws_lb" "this" {
   dynamic "access_logs" {
     for_each = var.enable_log ? [1] : []
     content {
-      enable = true
+      enabled = true
       bucket = local.resolved_bucket_name
       prefix = var.s3_log_prefix
     }
