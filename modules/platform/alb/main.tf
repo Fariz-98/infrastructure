@@ -41,16 +41,6 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Logs
-  dynamic "access_logs" {
-    for_each = var.enable_log ? [1] : []
-    content {
-      enable = true
-      bucket = local.resolved_bucket_name
-      prefix = var.s3_log_prefix
-    }
-  }
-
   tags = merge(var.tags, { Name = "${var.name_prefix}-alb-sg" })
 }
 
@@ -63,6 +53,16 @@ resource "aws_lb" "this" {
 
   enable_deletion_protection = var.enable_deletion_protection
   idle_timeout = var.idle_timeout
+
+  # Logs
+  dynamic "access_logs" {
+    for_each = var.enable_log ? [1] : []
+    content {
+      enable = true
+      bucket = local.resolved_bucket_name
+      prefix = var.s3_log_prefix
+    }
+  }
 
   tags = merge(var.tags, { Name = var.name_prefix })
 }
@@ -137,7 +137,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "log" {
   count = var.enable_log && var.create_log_bucket ? 1 : 0
   bucket = aws_s3_bucket.log[0].id
   rule {
-    apply_server_side_by_default {
+    apply_server_side_encryption_by_default {
       sse_algorithm = var.log_sse_algorithm
       kms_master_key_id = var.log_sse_algorithm == "aws:kms" && length(var.log_kms_key_id) > 0 ? var.log_kms_key_id : null
     }
@@ -150,6 +150,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "log" {
   rule {
     id = "expire-alb-access-logs"
     status = "Enabled"
+
+    filter {
+      prefix = var.s3_log_prefix
+    }
+
     expiration {
       days = var.log_expiration_days
     }
