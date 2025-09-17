@@ -1,5 +1,6 @@
 variable "env" {
   type = string
+  default = "env"
 }
 
 variable "alert_emails" {
@@ -9,4 +10,5 @@ variable "alert_emails" {
 
 variable "region" {
   type = string
+  default = "ap-southeast-1"
 }
