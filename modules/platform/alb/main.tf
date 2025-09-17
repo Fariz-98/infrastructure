@@ -64,6 +64,10 @@ resource "aws_lb" "this" {
     }
   }
 
+  depends_on = [
+    aws_s3_bucket_policy.log_writer
+  ]
+
   tags = merge(var.tags, { Name = var.name_prefix })
 }
 
