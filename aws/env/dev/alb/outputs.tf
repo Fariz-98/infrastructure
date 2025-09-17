@@ -13,3 +13,7 @@ output "http_listener_arn" {
 output "https_listener_arn" {
   value = module.alb.https_listener_arn
 }
+
+output "alb_arn_suffix" {
+  value = module.alb.alb_arn_suffix
+}

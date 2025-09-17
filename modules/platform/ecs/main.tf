@@ -1,6 +1,6 @@
-resource "aws_cloudwatch_log_group" "ecx_exec" {
+resource "aws_cloudwatch_log_group" "ecs_exec" {
   count = var.enable_exec ? 1 : 0
-  name = "/ecs/${var.name_prefix}-exec"
+  name = "/aws/ecs/${var.env}/${var.name_prefix}-exec"
   retention_in_days = var.exec_log_retention_days
   tags = merge(var.tags, { Name = "${var.name_prefix}-exec-log" })
 }
@@ -22,7 +22,7 @@ resource "aws_ecs_cluster" "this" {
       execute_command_configuration {
         logging = "OVERRIDE"
         log_configuration {
-          cloud_watch_log_group_name = aws_cloudwatch_log_group.ecx_exec[0].name
+          cloud_watch_log_group_name = aws_cloudwatch_log_group.ecs_exec[0].name
         }
       }
     }

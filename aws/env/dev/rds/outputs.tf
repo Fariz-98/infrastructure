@@ -17,3 +17,7 @@ output "rds_master_secret_arn" {
 output "rds_db_name" {
   value = module.rds.db_name
 }
+
+output "db_instance_id" {
+  value = module.rds.db_instance_id
+}

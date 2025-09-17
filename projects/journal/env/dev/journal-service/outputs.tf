@@ -17,3 +17,7 @@ output "task_family" {
 output "backend_app_container_name" {
   value = local.app_container_name
 }
+
+output "target_group_arn_suffix" {
+  value = module.journal_service.target_group_arn_suffix
+}

@@ -70,8 +70,8 @@ module "journal_service" {
       name = "APPLICATION_JWT_SECRETKEY", valueFrom = "${data.terraform_remote_state.secrets.outputs.journal_secrets_arn}:jwtSecret::"
     }
   ]
-  log_group_name = "/ecs/${local.name_prefix}"
-  log_retention_days = 5
+  log_group_name = "/aws/ecs/${var.env}/${local.name_prefix}"
+  log_retention_days = 14
 
   # ECS Service
   cluster_arn = data.terraform_remote_state.ecs.outputs.cluster_arn

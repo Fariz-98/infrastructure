@@ -108,3 +108,53 @@ resource "aws_vpc_endpoint" "interfaces" {
     Name = "${var.name_prefix}-${replace(each.value, "com.amazonaws.${var.region}.", "")}"
   })
 }
+
+# Logs
+resource "aws_cloudwatch_log_group" "vpc_flow" {
+  count = var.enable_vpc_flow_logs ? 1 : 0
+  name = "/aws/vpc/${var.env}-flow"
+  retention_in_days = var.vpc_flow_log_retention_days
+}
+
+data "aws_iam_policy_document" "vpc_flow_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
+
+data "aws_iam_policy_document" "vpc_flow_policy" {
+  statement {
+    sid = "VpcLogs"
+    effect = "Allow"
+    actions = ["logs:CreateLogStream", "logs:PutLogEvents"]
+    resources = [aws_cloudwatch_log_group.vpc_flow[0].arn]
+  }
+}
+
+module "vpc_flow_role" {
+  source = "../../services/iam/role"
+
+  count = var.enable_vpc_flow_logs ? 1 : 0
+  name = "tf-${var.env}-vpc-flowlogs-role"
+
+  trust_policy_json = data.aws_iam_policy_document.vpc_flow_assume.json
+  inline_policies = {
+    "vpc-logs-policy" = data.aws_iam_policy_document.vpc_flow_policy.json
+  }
+}
+
+resource "aws_flow_log" "vpc" {
+  count = var.enable_vpc_flow_logs ? 1 : 0
+
+  vpc_id = aws_vpc.main.id
+  log_destination_type = "cloud-watch-logs"
+  log_destination = aws_cloudwatch_log_group.vpc_flow[0].arn
+  iam_role_arn = module.vpc_flow_role.role_arn
+
+  traffic_type = var.vpc_flow_log_traffic_type
+  max_aggregation_interval = var.vpc_flow_log_aggregation_seconds
+}

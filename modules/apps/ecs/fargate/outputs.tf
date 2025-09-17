@@ -13,3 +13,7 @@ output "log_group_name" {
 output "task_family" {
   value = aws_ecs_task_definition.app.family
 }
+
+output "target_group_arn_suffix" {
+  value = aws_lb_target_group.app.arn_suffix
+}

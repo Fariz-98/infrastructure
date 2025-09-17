@@ -25,6 +25,7 @@ module "ecs_cluster" {
   source = "../../../../modules/platform/ecs"
 
   name_prefix = local.name_prefix
+  env = var.env
   enable_container_insights = true
   enable_exec = true
   exec_log_retention_days = 3
