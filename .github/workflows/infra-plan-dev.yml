@@ -21,6 +21,7 @@ jobs:
     env:
       AWS_REGION: ap-southeast-1
       TF_IN_AUTOMATION: "1"
+      TF_VAR_alert_emails: ${{ secrets.TF_VAR_ALERT_EMAILS }}
 
     steps:
       - name: Checkout
