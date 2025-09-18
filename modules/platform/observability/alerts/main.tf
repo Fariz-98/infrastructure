@@ -6,6 +6,29 @@ resource "aws_sns_topic" "alerts" {
   tags = merge(var.tags, { Name = var.topic_name })
 }
 
+# SNS Policy
+data "aws_caller_identity" "current" {}
+resource "aws_sns_topic_policy" "alerts" {
+  arn = aws_sns_topic.alerts.arn
+
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudWatchToPublish"
+        Effect    = "Allow"
+        Principal = { "Service" = "cloudwatch.amazonaws.com" }
+        Action    = "sns:Publish"
+        Resource  = aws_sns_topic.alerts.arn
+        Condition = {
+          "ArnLike" = {
+            "AWS:SourceArn" = "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:*"
+          }
+        }
+      }
+    ]
+  })
+}
 # Email subscriptions
 resource "aws_sns_topic_subscription" "email" {
   for_each = toset(var.alert_emails)

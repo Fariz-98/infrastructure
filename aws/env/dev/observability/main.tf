@@ -24,6 +24,7 @@ locals {
 module "alerts" {
   source = "../../../../modules/platform/observability/alerts"
 
+  region = var.region
   alert_emails = var.alert_emails
   topic_name = local.name_prefix
 }

@@ -172,6 +172,35 @@ data "aws_iam_policy_document" "apply_policy" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid = "SnsGlobal"
+    effect = "Allow"
+    actions = [
+      "sns:CreateTopic",
+      "sns:ListTopics"
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid     = "SnsManageProjectTopics"
+    effect  = "Allow"
+    actions = [
+      "sns:GetTopicAttributes",
+      "sns:SetTopicAttributes",
+      "sns:DeleteTopic",
+      "sns:Subscribe",
+      "sns:Unsubscribe",
+      "sns:AddPermission",
+      "sns:RemovePermission",
+      "sns:TagResource",
+      "sns:UntagResource",
+      "sns:ListTagsForResource",
+      "sns:Publish"
+    ]
+    resources = ["arn:aws:sns:${var.region}:${local.account_id}:tf-${var.env}-*"]
+  }
 }
 
 # --------------

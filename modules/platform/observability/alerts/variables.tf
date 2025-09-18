@@ -10,6 +10,10 @@ variable "topic_name" {
   default = ""
 }
 
+variable "region" {
+  type = string
+}
+
 variable "kms_key_id" {
   description = "KSM key for SNS SSE"
   type = string
