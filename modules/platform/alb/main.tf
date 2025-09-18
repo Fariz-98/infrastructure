@@ -1,7 +1,7 @@
 locals {
   # Logs
-  # TODO: Change bucket name later to something else
-  resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-2" : var.existing_bucket_name
+  # TODO: Bucket name is added with number suffix as the same name is unable to be reused for a specific amount of time
+  resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-5" : var.existing_bucket_name
   object_path_arn = "arn:aws:s3:::${local.resolved_bucket_name}/${var.s3_log_prefix}/AWSLogs/${data.aws_caller_identity.current.account_id}/elasticloadbalancing/${var.region}/*"
 }
 
@@ -133,14 +133,6 @@ resource "aws_s3_bucket_public_access_block" "log" {
   block_public_policy = true
   ignore_public_acls = true
   restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_ownership_controls" "log" {
-  count = var.enable_log && var.create_log_bucket ? 1 : 0
-  bucket = aws_s3_bucket.log[0].id
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "log" {
