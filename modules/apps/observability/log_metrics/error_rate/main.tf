@@ -7,7 +7,6 @@ resource "aws_cloudwatch_log_metric_filter" "error_rate" {
     name      = var.metric_name
     namespace = var.metric_namespace
     value     = "1"
-    default_value = 0
 
     # For dashboards and scoping
     dimensions = var.metric_dimensions
