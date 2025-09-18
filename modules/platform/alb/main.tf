@@ -1,7 +1,7 @@
 locals {
   # Logs
   # TODO: Change bucket name later to something else
-  resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-1" : var.existing_bucket_name
+  resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-2" : var.existing_bucket_name
   object_path_arn = "arn:aws:s3:::${local.resolved_bucket_name}/${var.s3_log_prefix}/AWSLogs/${data.aws_caller_identity.current.account_id}/elasticloadbalancing/${var.region}/*"
 }
 
@@ -118,6 +118,11 @@ resource "aws_s3_bucket" "log" {
   count = var.enable_log && var.create_log_bucket ? 1 : 0
   bucket = local.resolved_bucket_name
   force_destroy = var.log_force_destroy
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
   tags = merge(var.tags, { Name = "tf-${var.env}-alb-logs" })
 }
 
