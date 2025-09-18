@@ -1,7 +1,7 @@
 locals {
   # Logs
   # TODO: Bucket name is added with number suffix as the same name is unable to be reused for a specific amount of time
-  resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-5" : var.existing_bucket_name
+  resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-6" : var.existing_bucket_name
   object_path_arn = "arn:aws:s3:::${local.resolved_bucket_name}/${var.s3_log_prefix}/AWSLogs/${data.aws_caller_identity.current.account_id}/elasticloadbalancing/${var.region}/*"
 }
 
