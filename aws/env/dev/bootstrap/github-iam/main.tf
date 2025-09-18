@@ -107,7 +107,7 @@ data "aws_iam_policy_document" "apply_policy" {
       "secretsmanager:*",
       "rds:*",
       "route53:*",
-      "ssm:*"
+      "ssm:*",
     ]
     resources = ["*"]
   }
@@ -177,29 +177,18 @@ data "aws_iam_policy_document" "apply_policy" {
     sid = "SnsGlobal"
     effect = "Allow"
     actions = [
-      "sns:CreateTopic",
-      "sns:ListTopics"
+      "sns:*",
     ]
     resources = ["*"]
   }
 
   statement {
-    sid     = "SnsManageProjectTopics"
-    effect  = "Allow"
+    sid = "CloudWatchGlobal"
+    effect = "Allow"
     actions = [
-      "sns:GetTopicAttributes",
-      "sns:SetTopicAttributes",
-      "sns:DeleteTopic",
-      "sns:Subscribe",
-      "sns:Unsubscribe",
-      "sns:AddPermission",
-      "sns:RemovePermission",
-      "sns:TagResource",
-      "sns:UntagResource",
-      "sns:ListTagsForResource",
-      "sns:Publish"
+      "cloudwatch:*",
     ]
-    resources = ["arn:aws:sns:${var.region}:${local.account_id}:tf-${var.env}-*"]
+    resources = ["*"]
   }
 }
 
