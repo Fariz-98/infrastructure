@@ -93,7 +93,9 @@ data "aws_iam_policy_document" "apply_policy" {
       "s3:GetBucketPolicy",
       "s3:GetEncryptionConfiguration",
       "s3:GetBucketTagging",
-      "s3:GetLifecycleConfiguration"
+      "s3:GetLifecycleConfiguration",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:DeleteBucketPolicy"
     ]
     resources = [
       "arn:aws:s3:::tf-${var.env}-*"
