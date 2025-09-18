@@ -89,13 +89,19 @@ data "aws_iam_policy_document" "apply_policy" {
       "s3:PutBucketTagging",
       "s3:PutLifecycleConfiguration",
       "s3:PutObject",
+      "s3:ListBucket",
       "s3:GetBucketLocation",
       "s3:GetBucketPolicy",
       "s3:GetEncryptionConfiguration",
       "s3:GetBucketTagging",
       "s3:GetLifecycleConfiguration",
       "s3:GetBucketPublicAccessBlock",
-      "s3:DeleteBucketPolicy"
+      "s3:GetBucketOwnershipControls",
+      "s3:GetBucketAcl",
+      "s3:GetBucketLogging",
+      "s3:GetBucketPolicyStatus",
+      "s3:GetBucketVersioning",
+      "s3:GetBucketCORS"
     ]
     resources = [
       "arn:aws:s3:::tf-${var.env}-*"
@@ -242,7 +248,18 @@ data "aws_iam_policy_document" "plan_policy" {
     sid = "S3BucketManagement"
     effect = "Allow"
     actions = [
-      "s3:GetBucketLocation"
+      "s3:ListBucket",
+      "s3:GetBucketLocation",
+      "s3:GetBucketPolicy",
+      "s3:GetEncryptionConfiguration",
+      "s3:GetBucketTagging",
+      "s3:GetLifecycleConfiguration",
+      "s3:GetBucketPublicAccessBlock",
+      "s3:GetBucketOwnershipControls",
+      "s3:GetBucketAcl",
+      "s3:GetBucketLogging",
+      "s3:GetBucketPolicyStatus",
+      "s3:GetBucketVersioning"
     ]
     resources = [
       "arn:aws:s3:::tf-${var.env}-*"
