@@ -2,9 +2,7 @@ locals {
   # Logs
   # TODO: Bucket name is added with number suffix as the same name is unable to be reused for a specific amount of time
   resolved_bucket_name = var.create_log_bucket ? "tf-${var.env}-alb-logs-${data.aws_caller_identity.current.account_id}-7" : var.existing_bucket_name
-  object_path_arn = "arn:aws:s3:::${local.resolved_bucket_name}/${var.s3_log_prefix}/AWSLogs/${data.aws_caller_identity.current.account_id}/elasticloadbalancing/${var.region}/*"
 }
-
 resource "aws_security_group" "alb_sg" {
   name = "${var.name_prefix}-alb-sg"
   description = "Public ALB Ingress from the Internet"
@@ -66,7 +64,8 @@ resource "aws_lb" "this" {
   }
 
   depends_on = [
-    aws_s3_bucket_policy.log_writer
+    aws_s3_bucket_policy.log_writer,
+    aws_s3_bucket_ownership_controls.log
   ]
 
   tags = merge(var.tags, { Name = var.name_prefix })
@@ -146,6 +145,14 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "log" {
   }
 }
 
+resource "aws_s3_bucket_ownership_controls" "log" {
+  count  = var.enable_log && var.create_log_bucket ? 1 : 0
+  bucket = aws_s3_bucket.log[0].id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "log" {
   count = var.enable_log && var.create_log_bucket ? 1 : 0
   bucket = aws_s3_bucket.log[0].id
@@ -175,7 +182,7 @@ resource "aws_s3_bucket_policy" "log_writer" {
         Effect: "Allow",
         Principal = { AWS = data.aws_elb_service_account.this.arn },
         Action = ["s3:PutObject"],
-        Resource = local.object_path_arn
+        Resource = "arn:aws:s3:::${local.resolved_bucket_name}/*"
       },
       {
         Sid: "AwsLogDeliveryAclCheck",
