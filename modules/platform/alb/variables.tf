@@ -92,7 +92,7 @@ variable "existing_bucket_name" {
 variable "s3_log_prefix" {
   description = "S3 key prefix for ALB logs"
   type = string
-  default = "alb/"
+  default = "alb"
 }
 
 variable "log_expiration_days" {
