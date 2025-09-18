@@ -156,7 +156,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "log" {
     status = "Enabled"
 
     filter {
-      prefix = var.s3_log_prefix
+      prefix = var.s3_log_prefix != "" ? var.s3_log_prefix : null
     }
 
     expiration {
