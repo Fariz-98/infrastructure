@@ -7,9 +7,6 @@ resource "aws_cloudwatch_log_metric_filter" "error_rate" {
     name      = var.metric_name
     namespace = var.metric_namespace
     value     = "1"
-
-    # For dashboards and scoping
-    dimensions = var.metric_dimensions
   }
 }
 
@@ -26,7 +23,6 @@ resource "aws_cloudwatch_metric_alarm" "error_rate_high" {
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data = "notBreaching"
   alarm_actions = [var.sns_topic_arn]
-  dimensions = var.metric_dimensions
   insufficient_data_actions = []
 
   tags = merge(var.tags, { Name = "tf-${var.env}-${var.app_name}-errors", Kind = "log-error-rate" })

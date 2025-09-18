@@ -13,11 +13,5 @@ module "app_error_rate_alarm" {
   metric_namespace = "Custom/App"
   metric_name = "ErrorCount"
 
-  metric_dimensions = {
-    Env = var.env
-    App = local.app_name
-    Service = data.terraform_remote_state.journal_service.outputs.app_ecs_service_name
-  }
-
   filter_pattern = "{ $.level = \"ERROR\" }"
 }
