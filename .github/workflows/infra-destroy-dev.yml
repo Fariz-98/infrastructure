@@ -23,6 +23,7 @@ jobs:
     env:
       AWS_REGION: ap-southeast-1
       TF_IN_AUTOMATION: "1"
+      TF_VAR_alert_emails: ${{ secrets.TF_VAR_ALERT_EMAILS }}
       SSM_INFRA_PARAM: /dev/infra/contract
       SSM_JOURNAL_PARAM: /dev/journal/contract
       SSM_SHARED_JOURNAL_PARAM: /shared/journal/contract
